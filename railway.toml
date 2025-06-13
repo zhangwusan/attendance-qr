@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python manage.py migrate && gunicorn wsgi:app"
+startCommand = "gunicorn wsgi:app"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
