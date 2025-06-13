@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - QR Attendance System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">Teacher Dashboard</h4>
+                    <p class="text-muted small mb-0">Welcome back, {{ current_user.name }}</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-qr-code me-2"></i>
+                    Generate QR Code
+                </h5>
+                <p class="text-muted small mb-0">Select a class and generate a QR code for attendance</p>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="course-select" class="form-label">Select Course</label>
+                    <select class="form-select" id="course-select">
+                        <option value="">Choose a course</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.name }} ({{ course.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="course-details" class="mb-3 p-3 bg-light rounded" style="display: none;">
+                    <p class="fw-medium mb-1" id="course-name"></p>
+                    <p class="small text-muted mb-0">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        <span id="course-room"></span>
+                    </p>
+                </div>
+                
+                <button id="generate-qr-btn" class="btn btn-primary w-100" disabled>
+                    Generate QR Code
+                </button>
+                
+                <div id="session-active" class="mt-3 p-3 bg-success bg-opacity-10 border border-success rounded d-flex justify-content-between align-items-center" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-clock me-2 text-success"></i>
+                        <span class="small fw-medium">Session Active</span>
+                    </div>
+                    <span id="qr-timer" class="badge bg-success"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div id="qr-display" style="display: none;">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5 class="mb-0" id="qr-title"></h5>
+                </div>
+                <div class="card-body">
+                    <div class="qr-container">
+                        <div class="qr-code">
+                            <img id="qr-image" src="/placeholder.svg" alt="QR Code" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <p class="small text-muted mb-1">QR Code: <span id="qr-code-text"></span></p>
+                    <p class="small text-muted mb-0">Expires in: <span id="qr-expiry"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div id="attendance-container" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Live Attendance</h5>
+                        <div class="d-flex gap-2 mt-2">
+                            <span class="badge bg-secondary" id="attendance-count">0/0 students present</span>
+                            <span class="badge bg-danger" id="attendance-percentage">0% attendance</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button id="refresh-btn" class="btn btn-outline-secondary btn-sm me-2">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button id="download-csv" class="btn btn-outline-secondary btn-sm" disabled>
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="attendance-list" class="overflow-auto" style="max-height: 400px;">
+                        <p class="text-muted text-center py-4">No students have scanned yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('course-select');
+        const courseDetails = document.getElementById('course-details');
+        const courseName = document.getElementById('course-name');
+        const courseRoom = document.getElementById('course-room');
+        const generateQrBtn = document.getElementById('generate-qr-btn');
+        const qrDisplay = document.getElementById('qr-display');
+        const qrImage = document.getElementById('qr-image');
+        const qrTitle = document.getElementById('qr-title');
+        const qrCodeText = document.getElementById('qr-code-text');
+        const qrExpiry = document.getElementById('qr-expiry');
+        const sessionActive = document.getElementById('session-active');
+        const qrTimer = document.getElementById('qr-timer');
+        const attendanceContainer = document.getElementById('attendance-container');
+        const attendanceList = document.getElementById('attendance-list');
+        const attendanceCount = document.getElementById('attendance-count');
+        const attendancePercentage = document.getElementById('attendance-percentage');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const downloadCsvBtn = document.getElementById('download-csv');
+        
+        let currentSessionId = null;
+        let expiryTime = null;
+        let timerInterval = null;
+        let attendanceInterval = null;
+        const totalStudents = 35; // Assuming 35 students in class
+        
+        // Initialize with active session if exists
+        {% if active_session %}
+            currentSessionId = {{ active_session.id }};
+            expiryTime = new Date('{{ active_session.qr_expires_at }}');
+            
+            // Show QR code
+            qrTitle.textContent = '{{ active_session.course.name }} - {{ active_session.course.room }}';
+            qrImage.src = '{{ qr_image }}';
+            qrCodeText.textContent = '{{ active_session.qr_code }}';
+            qrDisplay.style.display = 'block';
+            sessionActive.style.display = 'flex';
+            attendanceContainer.style.display = 'block';
+            
+            // Start timer
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Load attendance
+            loadAttendance();
+            attendanceInterval = setInterval(loadAttendance, 5000);
+            
+            // Select the course in dropdown
+            courseSelect.value = '{{ active_session.course_id }}';
+            const courseOption = Array.from(courseSelect.options).find(option => option.value === '{{ active_session.course_id }}');
+            if (courseOption) {
+                courseName.textContent = courseOption.textContent;
+                courseRoom.textContent = '{{ active_session.course.room }}';
+                courseDetails.style.display = 'block';
+            }
+        {% endif %}
+        
+        courseSelect.addEventListener('change', function() {
+            if (this.value) {
+                const selectedOption = this.options[this.selectedIndex];
+                const courseText = selectedOption.textContent;
+                const courseId = this.value;
+                
+                // Get course details
+                fetch(`/api/courses`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const course = data.courses.find(c => c.id == courseId);
+                        if (course) {
+                            courseName.textContent = course.name;
+                            courseRoom.textContent = course.room;
+                            courseDetails.style.display = 'block';
+                            generateQrBtn.disabled = false;
+                        }
+                    });
+            } else {
+                courseDetails.style.display = 'none';
+                generateQrBtn.disabled = true;
+            }
+        });
+        
+        generateQrBtn.addEventListener('click', function() {
+            const courseId = courseSelect.value;
+            if (!courseId) return;
+            
+            generateQrBtn.disabled = true;
+            generateQrBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+            
+            fetch('/api/generate-qr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ course_id: courseId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                currentSessionId = data.session_id;
+                qrTitle.textContent = `${data.course_name} - ${data.room}`;
+                qrImage.src = data.qr_image;
+                qrCodeText.textContent = data.qr_code;
+                qrDisplay.style.display = 'block';
+                sessionActive.style.display = 'flex';
+                attendanceContainer.style.display = 'block';
+                
+                // Set expiry time
+                expiryTime = new Date(data.expires_at);
+                
+                // Start timer
+                clearInterval(timerInterval);
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                // Start attendance polling
+                clearInterval(attendanceInterval);
+                loadAttendance();
+                attendanceInterval = setInterval(loadAttendance, 5000);
+                
+                generateQrBtn.innerHTML = 'Generate QR Code';
+                generateQrBtn.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error generating QR code:', error);
+                generateQrBtn.innerHTML = 'Generate QR Code';
+                generateQrBtn.disabled = false;
+                alert('Failed to generate QR code. Please try again.');
+            });
+        });
+        
+        refreshBtn.addEventListener('click', loadAttendance);
+        
+        downloadCsvBtn.addEventListener('click', function() {
+            if (!currentSessionId) return;
+            
+            fetch(`/api/attendance/${currentSessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.attendance && data.attendance.length > 0) {
+                        // Create CSV content
+                        const headers = ['Name', 'Student ID', 'Email', 'Scan Time'];
+                        const csvContent = [
+                            headers.join(','),
+                            ...data.attendance.map(record => 
+                                [record.name, record.student_id, record.email, new Date(record.scanned_at).toLocaleString()].join(',')
+                            )
+                        ].join('\n');
+                        
+                        // Create download link
+                        const blob = new Blob([csvContent], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `attendance-${new Date().toISOString().split('T')[0]}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }
+                });
+        });
+        
+        function updateTimer() {
+            if (!expiryTime) return;
+            
+            const now = new Date();
+            const diff = expiryTime - now;
+            
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                qrTimer.textContent = 'Expired';
+                qrTimer.classList.remove('bg-success');
+                qrTimer.classList.add('bg-danger');
+                return;
+            }
+            
+            const minutes = Math.floor(diff / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            qrTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            qrExpiry.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function loadAttendance() {
+            if (!currentSessionId) return;
+            
+            fetch(`/api/attendance/${currentSessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.attendance && data.attendance.length > 0) {
+                        // Update attendance count
+                        attendanceCount.textContent = `${data.attendance.length}/${totalStudents} students present`;
+                        
+                        // Update attendance percentage
+                        const percentage = Math.round((data.attendance.length / totalStudents) * 100);
+                        attendancePercentage.textContent = `${percentage}% attendance`;
+                        
+                        if (percentage > 80) {
+                            attendancePercentage.classList.remove('bg-danger');
+                            attendancePercentage.classList.add('bg-success');
+                        } else {
+                            attendancePercentage.classList.remove('bg-success');
+                            attendancePercentage.classList.add('bg-danger');
+                        }
+                        
+                        // Enable download button
+                        downloadCsvBtn.disabled = false;
+                        
+                        // Render attendance list
+                        attendanceList.innerHTML = '';
+                        data.attendance.forEach(record => {
+                            const attendanceItem = document.createElement('div');
+                            attendanceItem.className = 'attendance-item';
+                            
+                            const studentInfo = document.createElement('div');
+                            const studentName = document.createElement('p');
+                            studentName.className = 'attendance-name mb-0';
+                            studentName.textContent = record.name;
+                            
+                            const studentId = document.createElement('p');
+                            studentId.className = 'attendance-id mb-0';
+                            studentId.textContent = `ID: ${record.student_id}`;
+                            
+                            studentInfo.appendChild(studentName);
+                            studentInfo.appendChild(studentId);
+                            
+                            const timeInfo = document.createElement('div');
+                            timeInfo.className = 'text-end';
+                            
+                            const scanTime = document.createElement('p');
+                            scanTime.className = 'attendance-time mb-1';
+                            scanTime.textContent = new Date(record.scanned_at).toLocaleTimeString();
+                            
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-light text-dark';
+                            badge.textContent = 'Present';
+                            
+                            timeInfo.appendChild(scanTime);
+                            timeInfo.appendChild(badge);
+                            
+                            attendanceItem.appendChild(studentInfo);
+                            attendanceItem.appendChild(timeInfo);
+                            
+                            attendanceList.appendChild(attendanceItem);
+                        });
+                    } else {
+                        attendanceList.innerHTML = '<p class="text-muted text-center py-4">No students have scanned yet</p>';
+                        attendanceCount.textContent = `0/${totalStudents} students present`;
+                        attendancePercentage.textContent = '0% attendance';
+                        downloadCsvBtn.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading attendance:', error);
+                    attendanceList.innerHTML = '<p class="text-danger text-center py-4">Failed to load attendance data</p>';
+                });
+        }
+    });
+</script>
+{% endblock %}

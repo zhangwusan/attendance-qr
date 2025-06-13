@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - QR Attendance System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-header text-center py-3">
+                <h4 class="mb-0">QR Attendance System</h4>
+                <p class="text-muted small mb-0">Sign in to access the system</p>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <ul class="nav nav-tabs mb-4" id="loginTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="teacher-tab" data-bs-toggle="tab" data-bs-target="#teacher" type="button" role="tab" aria-controls="teacher" aria-selected="true">
+                            <i class="bi bi-mortarboard me-1"></i> Teacher
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab" aria-controls="student" aria-selected="false">
+                            <i class="bi bi-people me-1"></i> Student
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="loginTabsContent">
+                    <div class="tab-pane fade show active" id="teacher" role="tabpanel" aria-labelledby="teacher-tab">
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <input type="hidden" name="role" value="teacher">
+                            <div class="mb-3">
+                                <label for="teacher-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="teacher-email" name="email" placeholder="teacher@institute.edu" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="teacher-password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="teacher-password" name="password" placeholder="Enter your password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Sign in as Teacher</button>
+                            <div class="mt-3 small text-muted">
+                                <p class="mb-1">Demo credentials:</p>
+                                <p class="mb-1">Email: teacher1@institute.edu</p>
+                                <p class="mb-0">Password: demo123</p>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="student" role="tabpanel" aria-labelledby="student-tab">
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <input type="hidden" name="role" value="student">
+                            <div class="mb-3">
+                                <label for="student-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="student-email" name="email" placeholder="student@institute.edu" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="student-password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="student-password" name="password" placeholder="Enter your password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Sign in as Student</button>
+                            <div class="mt-3 small text-muted">
+                                <p class="mb-1">Demo credentials:</p>
+                                <p class="mb-1">Email: student1@institute.edu</p>
+                                <p class="mb-0">Password: demo123</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
