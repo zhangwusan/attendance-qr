@@ -10,4 +10,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PORT=5000
 
-# CMD ["python", "run.py"]
+CMD ["python", "run.py"]
