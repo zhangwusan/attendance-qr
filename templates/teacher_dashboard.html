@@ -125,7 +125,7 @@
                 <div class="card-body">
                     <div class="qr-container">
                         <div class="qr-code">
-                            <img id="qr-image" src="/placeholder.svg" alt="QR Code" class="img-fluid">
+                            <img id="qr-image" src="https://via.placeholder.com/300x300/f8f9fa/6c757d?text=QR+Code" alt="QR Code" class="img-fluid">
                         </div>
                     </div>
                 </div>
@@ -182,18 +182,27 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="create-course-form">
+                <form id="create-course-form" class="needs-validation" novalidate>
                     <div class="mb-3">
                         <label for="course-name" class="form-label">Course Name</label>
                         <input type="text" class="form-control" id="course-name" required>
+                        <div class="invalid-feedback">
+                            Please provide a valid course name.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="course-code" class="form-label">Course Code</label>
                         <input type="text" class="form-control" id="course-code" required>
+                        <div class="invalid-feedback">
+                            Please provide a valid course name.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="course-room" class="form-label">Room</label>
                         <input type="text" class="form-control" id="course-room" required>
+                        <div class="invalid-feedback">
+                            Please provide a valid course name.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="time-slot" class="form-label">Time Slot</label>
@@ -203,6 +212,9 @@
                             <option value="{{ slot.value }}">{{ slot.label }}</option>
                             {% endfor %}
                         </select>
+                        <div class="invalid-feedback">
+                            Please provide a valid course name.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Days of Week</label>
@@ -346,6 +358,13 @@
         
         // Create course functionality
         saveCourseBtn.addEventListener('click', function() {
+            // Add form validation
+            const form = document.getElementById('create-course-form');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
             const name = document.getElementById('course-name').value;
             const code = document.getElementById('course-code').value;
             const room = document.getElementById('course-room').value;

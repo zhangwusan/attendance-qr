@@ -13,10 +13,8 @@ pip install -r requirements.txt
 echo "Setting up environment variables..."
 export FLASK_APP=app.py
 export FLASK_ENV=development
-# export DATABASE_URL="postgresql://postgres:postgres@localhost/attendance"
-# export SECRET_KEY="dev_secret_key"
-export DATABASE_URL="${DATABASE_URL}"
-export SECRET_KEY="${SECRET_KEY}"
+export DATABASE_URL="postgresql://postgres:postgres@localhost/attendance"
+export SECRET_KEY="dev_secret_key"
 
 # Initialize database
 echo "Initializing database..."
@@ -24,4 +22,4 @@ python seed_data.py
 
 # Run the application
 echo "Starting the application..."
-gunicorn wsgi:app
+python run.py
