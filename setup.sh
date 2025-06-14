@@ -21,6 +21,9 @@ export SECRET_KEY="${SECRET_KEY}"
 echo "Initializing database..."
 python seed_data.py
 
-# Run the application
-echo "Starting the application..."
-python run.py
+# # Run the application
+# echo "Starting the application..."
+# python run.py
+
+echo "Starting Gunicorn..."
+gunicorn wsgi:app
