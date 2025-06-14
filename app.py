@@ -6,14 +6,22 @@ import os
 import qrcode
 from io import BytesIO
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import uuid
 import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_secret_key')
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost/attendance')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:bDpRFCdJkcHyqogIMVplpSTTqfvzDcAe@postgres.railway.internal:5432/railway')
+
+# Production configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback_secret_key_change_in_production')
+
+# Database configuration
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///attendance.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -45,7 +53,9 @@ class Course(db.Model):
     name = db.Column(db.String(255), nullable=False)
     code = db.Column(db.String(50), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    room = db.Column(db.String(100))
+    room = db.Column(db.String(100), nullable=False)
+    time_slot = db.Column(db.String(20), nullable=False)  # e.g., "7-9am", "9-11am", "1-3pm", "3-5pm"
+    days_of_week = db.Column(db.String(50), nullable=False)  # e.g., "Mon,Wed,Fri"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     teacher = db.relationship('User', backref='courses')
@@ -76,12 +86,65 @@ class Attendance(db.Model):
     scanned_at = db.Column(db.DateTime, default=datetime.utcnow)
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.Text)
+    latitude = db.Column(db.Float)  # Student location
+    longitude = db.Column(db.Float)  # Student location
+    location_accuracy = db.Column(db.Float)  # GPS accuracy in meters
     
     student = db.relationship('User', backref='attendances')
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# Initialize database and seed data
+def init_db():
+    with app.app_context():
+        db.create_all()
+        
+        # Check if data already exists
+        if User.query.count() > 0:
+            return
+        
+        # Create demo users
+        teacher1 = User(
+            email='teacher@demo.com',
+            name='Demo Teacher',
+            role='teacher'
+        )
+        teacher1.set_password('demo123')
+        
+        student1 = User(
+            email='student@demo.com',
+            name='Demo Student',
+            role='student',
+            student_id='DEMO001'
+        )
+        student1.set_password('demo123')
+        
+        db.session.add_all([teacher1, student1])
+        db.session.commit()
+        
+        # Create demo course
+        course1 = Course(
+            name='Software Engineering',
+            code='CS301',
+            teacher_id=teacher1.id,
+            room='Room 203',
+            time_slot='7-9am',
+            days_of_week='Mon,Wed,Fri'
+        )
+        
+        course2 = Course(
+            name='Database Systems',
+            code='CS302',
+            teacher_id=teacher1.id,
+            room='Room 205',
+            time_slot='9-11am',
+            days_of_week='Tue,Thu'
+        )
+        
+        db.session.add_all([course1, course2])
+        db.session.commit()
 
 # Helper functions
 def generate_qr_code(data):
@@ -101,15 +164,12 @@ def generate_qr_code(data):
     return f"data:image/png;base64,{img_str}"
 
 def create_session(course_id, teacher_id):
-    # Deactivate any existing active sessions for this course
     Session.query.filter_by(course_id=course_id, is_active=True).update({'is_active': False})
     db.session.commit()
     
-    # Generate unique QR code
     qr_code = f"QR_{uuid.uuid4().hex[:16]}_{int(datetime.utcnow().timestamp())}"
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = datetime.utcnow() + timedelta(minutes=15)  # Extended to 15 minutes
     
-    # Create new session
     session = Session(
         course_id=course_id,
         teacher_id=teacher_id,
@@ -124,10 +184,21 @@ def create_session(course_id, teacher_id):
     db.session.commit()
     return session
 
+def get_time_slots():
+    return [
+        {'value': '7-9am', 'label': '7:00 AM - 9:00 AM'},
+        {'value': '9-11am', 'label': '9:00 AM - 11:00 AM'},
+        {'value': '1-3pm', 'label': '1:00 PM - 3:00 PM'},
+        {'value': '3-5pm', 'label': '3:00 PM - 5:00 PM'}
+    ]
+
+def get_days_of_week():
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 # Routes
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    return render_template('demo_info.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -177,7 +248,9 @@ def teacher_dashboard():
     return render_template('teacher_dashboard.html', 
                           courses=courses, 
                           active_session=active_session,
-                          qr_image=qr_image)
+                          qr_image=qr_image,
+                          time_slots=get_time_slots(),
+                          days_of_week=get_days_of_week())
 
 @app.route('/student')
 @login_required
@@ -186,6 +259,52 @@ def student_dashboard():
         return redirect(url_for('login'))
         
     return render_template('student_dashboard.html')
+
+# API Routes
+@app.route('/api/create-course', methods=['POST'])
+@login_required
+def create_course():
+    if current_user.role != 'teacher':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    name = data.get('name')
+    code = data.get('code')
+    room = data.get('room')
+    time_slot = data.get('time_slot')
+    days_of_week = data.get('days_of_week')
+    
+    if not all([name, code, room, time_slot, days_of_week]):
+        return jsonify({'error': 'All fields are required'}), 400
+    
+    # Check if course code already exists for this teacher
+    existing_course = Course.query.filter_by(code=code, teacher_id=current_user.id).first()
+    if existing_course:
+        return jsonify({'error': 'Course code already exists'}), 400
+    
+    course = Course(
+        name=name,
+        code=code,
+        teacher_id=current_user.id,
+        room=room,
+        time_slot=time_slot,
+        days_of_week=','.join(days_of_week)
+    )
+    
+    db.session.add(course)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'course': {
+            'id': course.id,
+            'name': course.name,
+            'code': course.code,
+            'room': course.room,
+            'time_slot': course.time_slot,
+            'days_of_week': course.days_of_week
+        }
+    })
 
 @app.route('/api/generate-qr', methods=['POST'])
 @login_required
@@ -197,13 +316,8 @@ def generate_qr():
     if not course_id:
         return jsonify({'error': 'Course ID is required'}), 400
         
-    # Create new session
     session = create_session(course_id, current_user.id)
-    
-    # Get course details
     course = Course.query.get(course_id)
-    
-    # Generate QR code
     qr_image = generate_qr_code(session.qr_code)
     
     return jsonify({
@@ -212,7 +326,8 @@ def generate_qr():
         'qr_image': qr_image,
         'expires_at': session.qr_expires_at.isoformat(),
         'course_name': course.name,
-        'room': course.room
+        'room': course.room,
+        'time_slot': course.time_slot
     })
 
 @app.route('/api/scan-qr', methods=['POST'])
@@ -221,39 +336,46 @@ def scan_qr():
     if current_user.role != 'student':
         return jsonify({'error': 'Unauthorized'}), 403
         
-    qr_code = request.json.get('qr_code')
+    data = request.json
+    qr_code = data.get('qr_code')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    accuracy = data.get('accuracy')
+    
     if not qr_code:
         return jsonify({'error': 'QR code is required'}), 400
         
-    # Find session by QR code
     session = Session.query.filter_by(qr_code=qr_code, is_active=True).first()
     if not session:
         return jsonify({'error': 'Invalid QR code'}), 400
         
-    # Check if QR code has expired
     if datetime.utcnow() > session.qr_expires_at:
         return jsonify({'error': 'QR code has expired. Please contact your teacher.'}), 400
         
-    # Check if student already scanned for this session
     existing = Attendance.query.filter_by(session_id=session.id, student_id=current_user.id).first()
     if existing:
         return jsonify({'error': 'You have already been marked present for this session'}), 400
         
-    # Record attendance
     attendance = Attendance(
         session_id=session.id,
         student_id=current_user.id,
         ip_address=request.remote_addr,
-        user_agent=request.user_agent.string
+        user_agent=request.user_agent.string,
+        latitude=latitude,
+        longitude=longitude,
+        location_accuracy=accuracy
     )
     
     db.session.add(attendance)
     db.session.commit()
     
+    current_time = datetime.utcnow()
+    
     return jsonify({
         'success': True,
-        'message': f"✅ Your attendance has been recorded – {datetime.utcnow().strftime('%H:%M:%S')}",
-        'scanned_at': attendance.scanned_at.isoformat()
+        'message': f"✅ Your attendance has been recorded at {current_time.strftime('%I:%M:%S %p')}",
+        'scanned_at': attendance.scanned_at.isoformat(),
+        'location_recorded': latitude is not None and longitude is not None
     })
 
 @app.route('/api/attendance/<int:session_id>')
@@ -262,12 +384,10 @@ def get_attendance(session_id):
     if current_user.role != 'teacher':
         return jsonify({'error': 'Unauthorized'}), 403
         
-    # Check if session belongs to teacher
     session = Session.query.filter_by(id=session_id, teacher_id=current_user.id).first()
     if not session:
         return jsonify({'error': 'Session not found'}), 404
         
-    # Get attendance records
     attendance_records = db.session.query(
         Attendance, User.name, User.student_id, User.email
     ).join(User, Attendance.student_id == User.id).filter(
@@ -282,7 +402,10 @@ def get_attendance(session_id):
             'name': name,
             'student_id': student_id,
             'email': email,
-            'scanned_at': record.scanned_at.isoformat()
+            'scanned_at': record.scanned_at.isoformat(),
+            'latitude': record.latitude,
+            'longitude': record.longitude,
+            'location_accuracy': record.location_accuracy
         })
     
     return jsonify({'attendance': attendance_list})
@@ -301,12 +424,37 @@ def get_courses():
             'id': course.id,
             'name': course.name,
             'code': course.code,
-            'room': course.room
+            'room': course.room,
+            'time_slot': course.time_slot,
+            'days_of_week': course.days_of_week
         })
     
     return jsonify({'courses': course_list})
 
+@app.route('/api/delete-course/<int:course_id>', methods=['DELETE'])
+@login_required
+def delete_course(course_id):
+    if current_user.role != 'teacher':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    course = Course.query.filter_by(id=course_id, teacher_id=current_user.id).first()
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+    
+    # Delete related sessions and attendance records
+    sessions = Session.query.filter_by(course_id=course_id).all()
+    for session in sessions:
+        Attendance.query.filter_by(session_id=session.id).delete()
+        db.session.delete(session)
+    
+    db.session.delete(course)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+# Initialize database on startup
+init_db()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

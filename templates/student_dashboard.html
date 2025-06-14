@@ -21,6 +21,35 @@
 
 <div class="row">
     <div class="col-md-8 mx-auto">
+        <!-- Current Time Display -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h5 class="mb-2">Current Time</h5>
+                <p class="h4 text-primary mb-0" id="current-time"></p>
+                <p class="small text-muted" id="current-date"></p>
+            </div>
+        </div>
+        
+        <!-- Location Status -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="mb-1">Location Services</h6>
+                        <p class="small text-muted mb-0" id="location-status">Checking location...</p>
+                    </div>
+                    <div>
+                        <button id="enable-location" class="btn btn-outline-primary btn-sm" style="display: none;">
+                            <i class="bi bi-geo-alt"></i> Enable Location
+                        </button>
+                        <span id="location-icon" class="text-muted">
+                            <i class="bi bi-geo-alt"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Scan Result -->
         <div id="scan-result" style="display: none;"></div>
         
@@ -77,15 +106,19 @@
                 </div>
                 <div class="d-flex align-items-start mb-3">
                     <span class="badge bg-light text-dark me-3 mt-1">2</span>
-                    <p class="mb-0">Use the camera to scan the QR code or enter it manually</p>
+                    <p class="mb-0">Enable location services for accurate attendance tracking</p>
                 </div>
                 <div class="d-flex align-items-start mb-3">
                     <span class="badge bg-light text-dark me-3 mt-1">3</span>
-                    <p class="mb-0">Your attendance will be recorded automatically</p>
+                    <p class="mb-0">Use the camera to scan the QR code or enter it manually</p>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <span class="badge bg-light text-dark me-3 mt-1">4</span>
+                    <p class="mb-0">Your attendance will be recorded with current time and location</p>
                 </div>
                 
                 <div class="alert alert-warning mt-4">
-                    <p class="mb-0"><strong>Note:</strong> QR codes expire 10 minutes after generation. Make sure to scan within the time limit.</p>
+                    <p class="mb-0"><strong>Note:</strong> QR codes expire 15 minutes after generation. Location services help verify you're physically present in class.</p>
                 </div>
             </div>
         </div>
@@ -105,11 +138,62 @@
         const manualForm = document.getElementById('manual-form');
         const qrCodeInput = document.getElementById('qr-code');
         const submitManualBtn = document.getElementById('submit-manual');
+        const currentTimeEl = document.getElementById('current-time');
+        const currentDateEl = document.getElementById('current-date');
+        const locationStatusEl = document.getElementById('location-status');
+        const enableLocationBtn = document.getElementById('enable-location');
+        const locationIcon = document.getElementById('location-icon');
         
         let stream = null;
         let scanning = false;
         let canvasElement = document.createElement('canvas');
         let canvas = canvasElement.getContext('2d');
+        let currentLocation = null;
+        
+        // Update current time
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString();
+            currentDateEl.textContent = now.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // Check and request location
+        function checkLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        locationStatusEl.textContent = 'Location enabled ✓';
+                        locationIcon.innerHTML = '<i class="bi bi-geo-alt-fill text-success"></i>';
+                        enableLocationBtn.style.display = 'none';
+                    },
+                    function(error) {
+                        locationStatusEl.textContent = 'Location access denied or unavailable';
+                        locationIcon.innerHTML = '<i class="bi bi-geo-alt text-warning"></i>';
+                        enableLocationBtn.style.display = 'inline-block';
+                    }
+                );
+            } else {
+                locationStatusEl.textContent = 'Location not supported by browser';
+                locationIcon.innerHTML = '<i class="bi bi-geo-alt text-muted"></i>';
+            }
+        }
+        
+        checkLocation();
+        
+        enableLocationBtn.addEventListener('click', checkLocation);
         
         startCameraBtn.addEventListener('click', startCamera);
         stopCameraBtn.addEventListener('click', stopCamera);
@@ -189,17 +273,26 @@
             submitManualBtn.disabled = true;
             submitManualBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Recording...';
             
+            const requestData = { qr_code: qrCode };
+            
+            // Add location if available
+            if (currentLocation) {
+                requestData.latitude = currentLocation.latitude;
+                requestData.longitude = currentLocation.longitude;
+                requestData.accuracy = currentLocation.accuracy;
+            }
+            
             fetch('/api/scan-qr', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ qr_code: qrCode }),
+                body: JSON.stringify(requestData),
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showScanResult(true, data.message, data.scanned_at);
+                    showScanResult(true, data.message, data.scanned_at, data.location_recorded);
                 } else {
                     showScanResult(false, data.error);
                 }
@@ -217,7 +310,7 @@
             });
         }
         
-        function showScanResult(success, message, scannedAt = null) {
+        function showScanResult(success, message, scannedAt = null, locationRecorded = false) {
             scannerContainer.style.display = 'none';
             
             let resultHTML = '';
@@ -229,13 +322,17 @@
                                 <i class="bi bi-check-circle-fill text-success fs-4 mt-1"></i>
                                 <div>
                                     <h5 class="text-success">Attendance Recorded!</h5>
-                                    <p class="mb-0">${message}</p>
+                                    <p class="mb-2">${message}</p>
                                     ${scannedAt ? `
-                                    <div class="d-flex align-items-center gap-1 mt-2">
+                                    <div class="d-flex align-items-center gap-1 mb-2">
                                         <i class="bi bi-clock"></i>
                                         <span class="small">${new Date(scannedAt).toLocaleString()}</span>
                                     </div>
                                     ` : ''}
+                                    <div class="d-flex align-items-center gap-1">
+                                        <i class="bi bi-geo-alt${locationRecorded ? '-fill text-success' : ' text-muted'}"></i>
+                                        <span class="small">${locationRecorded ? 'Location recorded' : 'No location data'}</span>
+                                    </div>
                                 </div>
                             </div>
                             <button id="scan-another" class="btn btn-outline-success mt-3">
