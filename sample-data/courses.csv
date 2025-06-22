@@ -1,0 +1,8 @@
+name,code,teacher_email,room,time_slot,days_of_week,default_qr_duration,credits,description
+Software Engineering,CS301,john.doe@university.edu,Room 203,09:00-10:30,Monday;Wednesday;Friday,15,3,Introduction to software engineering principles and practices
+Database Systems,CS302,john.doe@university.edu,Room 205,14:00-15:30,Tuesday;Thursday,10,3,Database design and management systems
+Web Development,CS303,jane.smith@university.edu,Room 201,11:00-12:30,Monday;Wednesday,20,3,Modern web development technologies and frameworks
+Calculus I,MATH101,jane.smith@university.edu,Room 301,08:00-09:30,Monday;Wednesday;Friday,10,4,Differential and integral calculus
+Physics I,PHYS101,mike.johnson@university.edu,Room 401,10:00-11:30,Tuesday;Thursday,15,4,Classical mechanics and thermodynamics
+General Chemistry,CHEM101,sarah.wilson@university.edu,Room 501,13:00-14:30,Monday;Wednesday;Friday,10,4,Basic principles of chemistry
+Engineering Mechanics,ENG201,david.brown@university.edu,Room 601,15:00-16:30,Tuesday;Thursday,15,3,Statics and dynamics in engineering

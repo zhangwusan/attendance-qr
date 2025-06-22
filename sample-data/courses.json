@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Software Engineering",
+    "code": "CS301",
+    "teacher_email": "john.doe@university.edu",
+    "room": "Room 203",
+    "time_slot": "09:00-10:30",
+    "days_of_week": ["Monday", "Wednesday", "Friday"],
+    "default_qr_duration": 15,
+    "credits": 3,
+    "description": "Introduction to software engineering principles and practices"
+  },
+  {
+    "name": "Database Systems",
+    "code": "CS302",
+    "teacher_email": "john.doe@university.edu",
+    "room": "Room 205",
+    "time_slot": "14:00-15:30",
+    "days_of_week": ["Tuesday", "Thursday"],
+    "default_qr_duration": 10,
+    "credits": 3,
+    "description": "Database design and management systems"
+  },
+  {
+    "name": "Web Development",
+    "code": "CS303",
+    "teacher_email": "jane.smith@university.edu",
+    "room": "Room 201",
+    "time_slot": "11:00-12:30",
+    "days_of_week": ["Monday", "Wednesday"],
+    "default_qr_duration": 20,
+    "credits": 3,
+    "description": "Modern web development technologies and frameworks"
+  }
+]

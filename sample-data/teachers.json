@@ -1,0 +1,26 @@
+[
+  {
+    "email": "john.doe@university.edu",
+    "name": "Dr. John Doe",
+    "password": "password123",
+    "department": "Computer Science",
+    "phone": "+1234567890",
+    "employee_id": "EMP001"
+  },
+  {
+    "email": "jane.smith@university.edu",
+    "name": "Prof. Jane Smith",
+    "password": "password123",
+    "department": "Mathematics",
+    "phone": "+1234567891",
+    "employee_id": "EMP002"
+  },
+  {
+    "email": "mike.johnson@university.edu",
+    "name": "Dr. Mike Johnson",
+    "password": "password123",
+    "department": "Physics",
+    "phone": "+1234567892",
+    "employee_id": "EMP003"
+  }
+]

@@ -1,0 +1,6 @@
+email,name,password,department,phone,employee_id
+john.doe@university.edu,Dr. John Doe,password123,Computer Science,+1234567890,EMP001
+jane.smith@university.edu,Prof. Jane Smith,password123,Mathematics,+1234567891,EMP002
+mike.johnson@university.edu,Dr. Mike Johnson,password123,Physics,+1234567892,EMP003
+sarah.wilson@university.edu,Prof. Sarah Wilson,password123,Chemistry,+1234567893,EMP004
+david.brown@university.edu,Dr. David Brown,password123,Engineering,+1234567894,EMP005

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - AMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold">Student Dashboard</h2>
+                <p class="text-muted mb-0">Welcome, {{ current_user.name }}</p>
+            </div>
+            <div class="text-end">
+                <div class="time-display">
+                    <i class="fas fa-clock me-2"></i>
+                    <span class="current-time"></span>
+                </div>
+                <div class="mt-1">
+                    <small class="text-muted current-date"></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-qrcode fa-4x text-primary mb-3"></i>
+                    <h3 class="fw-bold">Scan QR Code</h3>
+                    <p class="text-muted">Use your camera to scan the QR code displayed by your teacher</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-camera fa-2x text-primary mb-3"></i>
+                                <h5>Camera Scanner</h5>
+                                <p class="text-muted">Point your camera at the QR code</p>
+                                <button class="btn btn-primary" onclick="startCamera()">
+                                    <i class="fas fa-camera me-2"></i>Start Camera
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-keyboard fa-2x text-secondary mb-3"></i>
+                                <h5>Manual Entry</h5>
+                                <p class="text-muted">Type the QR code manually</p>
+                                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#manualModal">
+                                    <i class="fas fa-keyboard me-2"></i>Enter Code
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="camera-container" class="mt-4" style="display: none;">
+                    <div class="text-center">
+                        <video id="video" width="100%" height="300" style="border-radius: 15px;"></video>
+                        <div class="mt-3">
+                            <button class="btn btn-danger" onclick="stopCamera()">
+                                <i class="fas fa-stop me-2"></i>Stop Camera
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scan-result" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Entry Modal -->
+<div class="modal fade" id="manualModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-keyboard me-2"></i>Manual QR Code Entry
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="manualForm">
+                    <div class="mb-3">
+                        <label for="qrCodeInput" class="form-label">QR Code</label>
+                        <input type="text" class="form-control" id="qrCodeInput" placeholder="Enter QR code here..." required>
+                        <div class="form-text">Ask your teacher for the QR code if camera scanning doesn't work</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitManualCode()">
+                    <i class="fas fa-check me-1"></i>Submit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+let video = null;
+let canvas = null;
+let context = null;
+let scanning = false;
+let userLocation = null;
+
+// Get user location
+function getUserLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    userLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+                    resolve(userLocation);
+                },
+                error => {
+                    console.log('Location access denied or unavailable');
+                    resolve(null);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
+                }
+            );
+        } else {
+            resolve(null);
+        }
+    });
+}
+
+// Camera functions
+async function startCamera() {
+    try {
+        await getUserLocation();
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        });
+        
+        video = document.getElementById('video');
+        video.srcObject = stream;
+        video.play();
+        
+        document.getElementById('camera-container').style.display = 'block';
+        scanning = true;
+        
+        // Create canvas for QR code detection
+        canvas = document.createElement('canvas');
+        context = canvas.getContext('2d');
+        
+        video.addEventListener('loadedmetadata', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            scanQRCode();
+        });
+        
+    } catch (error) {
+        console.error('Camera access error:', error);
+        showResult('error', 'Camera access denied. Please use manual entry or check your browser permissions.');
+    }
+}
+
+function stopCamera() {
+    scanning = false;
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+    }
+    document.getElementById('camera-container').style.display = 'none';
+}
+
+function scanQRCode() {
+    if (!scanning || !video) return;
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
+        if (code) {
+            scanning = false;
+            stopCamera();
+            submitAttendance(code.data);
+            return;
+        }
+    }
+    
+    if (scanning) {
+        requestAnimationFrame(scanQRCode);
+    }
+}
+
+// Manual entry
+function submitManualCode() {
+    const qrCode = document.getElementById('qrCodeInput').value.trim();
+    if (qrCode) {
+        bootstrap.Modal.getInstance(document.getElementById('manualModal')).hide();
+        submitAttendance(qrCode);
+    } else {
+        alert('Please enter a QR code');
+    }
+}
+
+// Submit attendance
+async function submitAttendance(qrCode) {
+    showResult('info', 'Processing attendance...');
+    
+    // Get location if not already obtained
+    if (!userLocation) {
+        await getUserLocation();
+    }
+    
+    const data = {
+        qr_code: qrCode,
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
+        accuracy: userLocation?.accuracy
+    };
+    
+    try {
+        const response = await fetch('/api/scan-qr', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Timezone': userTimezone
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showResult('success', result.message, result.course);
+        } else {
+            showResult('error', result.error);
+        }
+    } catch (error) {
+        console.error('Attendance submission error:', error);
+        showResult('error', 'Failed to submit attendance. Please try again.');
+    }
+}
+
+function showResult(type, message, course = null) {
+    const resultDiv = document.getElementById('scan-result');
+    let icon, bgClass, textClass;
+    
+    switch (type) {
+        case 'success':
+            icon = 'fas fa-check-circle';
+            bgClass = 'alert-success';
+            textClass = 'text-success';
+            break;
+        case 'error':
+            icon = 'fas fa-exclamation-triangle';
+            bgClass = 'alert-danger';
+            textClass = 'text-danger';
+            break;
+        case 'info':
+            icon = 'fas fa-info-circle';
+            bgClass = 'alert-info';
+            textClass = 'text-info';
+            break;
+    }
+    
+    let html = `
+        <div class="alert ${bgClass} alert-dismissible fade show" role="alert">
+            <i class="${icon} me-2"></i>
+            <strong>${message}</strong>
+    `;
+    
+    if (course) {
+        html += `
+            <br><small class="text-muted">
+                Course: ${course.name} | Room: ${course.room}
+            </small>
+        `;
+    }
+    
+    html += `
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    resultDiv.innerHTML = html;
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            const alert = resultDiv.querySelector('.alert');
+            if (alert) {
+                bootstrap.Alert.getOrCreateInstance(alert).close();
+            }
+        }, 5000);
+    }
+}
+
+// Reset manual form when modal is closed
+document.getElementById('manualModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('qrCodeInput').value = '';
+});
+
+// Initialize location on page load
+getUserLocation();
+</script>
+{% endblock %}

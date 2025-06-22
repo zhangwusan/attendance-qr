@@ -1,0 +1,17 @@
+Dockerfile*
+docker-compose*
+.dockerignore
+.git
+.gitignore
+README.md
+.env
+.next
+.nyc_output
+.coverage
+.cache
+node_modules
+npm-debug.log
+.npm
+yarn-error.log
+.yarn-integrity
+.yarn-cache

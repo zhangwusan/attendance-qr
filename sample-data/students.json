@@ -1,0 +1,29 @@
+[
+  {
+    "email": "alice.johnson@university.edu",
+    "name": "Alice Johnson",
+    "student_id": "STU001",
+    "password": "password123",
+    "program": "Computer Science",
+    "year_level": 2,
+    "phone": "+1234567895"
+  },
+  {
+    "email": "bob.wilson@university.edu",
+    "name": "Bob Wilson",
+    "student_id": "STU002",
+    "password": "password123",
+    "program": "Engineering",
+    "year_level": 1,
+    "phone": "+1234567896"
+  },
+  {
+    "email": "carol.davis@university.edu",
+    "name": "Carol Davis",
+    "student_id": "STU003",
+    "password": "password123",
+    "program": "Mathematics",
+    "year_level": 3,
+    "phone": "+1234567897"
+  }
+]

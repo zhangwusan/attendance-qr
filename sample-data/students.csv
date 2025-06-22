@@ -1,0 +1,9 @@
+email,name,student_id,password,program,year_level,phone
+alice.johnson@university.edu,Alice Johnson,STU001,password123,Computer Science,2,+1234567895
+bob.wilson@university.edu,Bob Wilson,STU002,password123,Engineering,1,+1234567896
+carol.davis@university.edu,Carol Davis,STU003,password123,Mathematics,3,+1234567897
+daniel.miller@university.edu,Daniel Miller,STU004,password123,Physics,2,+1234567898
+emma.garcia@university.edu,Emma Garcia,STU005,password123,Chemistry,1,+1234567899
+frank.martinez@university.edu,Frank Martinez,STU006,password123,Computer Science,4,+1234567900
+grace.anderson@university.edu,Grace Anderson,STU007,password123,Engineering,2,+1234567901
+henry.taylor@university.edu,Henry Taylor,STU008,password123,Mathematics,1,+1234567902

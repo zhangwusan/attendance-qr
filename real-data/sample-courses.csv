@@ -1,0 +1,9 @@
+name,code,teacher_email,room,time_slot,days_of_week,default_qr_duration
+Database Systems,CS301,lin.mongkolsery@ams.edu,Room 101,08:00-09:30,Monday;Wednesday;Friday,15
+Web Development,CS302,phauk.sokkhey@ams.edu,Room 102,10:00-11:30,Tuesday;Thursday,20
+Data Structures,CS201,phok.ponna@ams.edu,Room 103,13:00-14:30,Monday;Wednesday,15
+Software Engineering,CS401,pen.chentra@ams.edu,Room 104,15:00-16:30,Tuesday;Thursday,25
+Computer Networks,CS303,sim.tepmony@ams.edu,Room 105,08:00-09:30,Monday;Friday,20
+Mobile Development,CS304,tann.chantara@ams.edu,Room 106,10:00-11:30,Wednesday;Friday,15
+Machine Learning,CS501,neang.pheak@ams.edu,Room 107,13:00-14:30,Tuesday;Thursday,30
+Cybersecurity,CS402,nhim.malai@ams.edu,Room 108,15:00-16:30,Monday;Wednesday,20

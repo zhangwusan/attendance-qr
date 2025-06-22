@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}AMS QR Attendance System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-5 text-center">
+                <i class="fas fa-qrcode fa-4x text-primary mb-4"></i>
+                <h1 class="display-4 fw-bold mb-3">AMS QR Attendance System</h1>
+                <p class="lead mb-4">Modern, secure, and efficient attendance tracking for educational institutions</p>
+                
+                <div class="row mb-5">
+                    <div class="col-md-4 mb-3">
+                        <div class="stats-card">
+                            <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                            <h5>Mobile Ready</h5>
+                            <p class="mb-0">Scan QR codes with any smartphone camera</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stats-card">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <h5>Real-time</h5>
+                            <p class="mb-0">Instant attendance recording and tracking</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stats-card">
+                            <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                            <h5>Secure</h5>
+                            <p class="mb-0">Location verification and time-limited QR codes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="fas fa-chalkboard-teacher fa-2x text-primary mb-3"></i>
+                                <h5>For Teachers</h5>
+                                <ul class="list-unstyled text-start">
+                                    <li><i class="fas fa-check text-success me-2"></i>Create and manage courses</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Generate QR codes instantly</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Track attendance in real-time</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Export attendance reports</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Custom QR duration settings</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <i class="fas fa-user-graduate fa-2x text-primary mb-3"></i>
+                                <h5>For Students</h5>
+                                <ul class="list-unstyled text-start">
+                                    <li><i class="fas fa-check text-success me-2"></i>Quick QR code scanning</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Automatic location verification</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Instant confirmation</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Mobile-optimized interface</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Local time display</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Demo System Ready!</strong> Use the credentials below to test the system:
+                    <br><br>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Teacher Login:</strong><br>
+                            Email: lin.mongkolsery@ams.edu<br>
+                            Password: teacher123
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Student Login:</strong><br>
+                            Email: e20211125@ams.edu<br>
+                            Password: student123
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>Get Started
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
