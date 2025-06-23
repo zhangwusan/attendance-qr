@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getUser } from "@/lib/auth"
 import { sql } from "@/lib/db"
 import { generateQRCode } from "@/lib/qr-utils"
 
 export async function GET() {
   try {
-    const user = await getSession()
+    const user = await getUser()
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }

@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getUserFromRequest } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
 export async function PUT(request: NextRequest, { params }: { params: { courseId: string } }) {
   try {
-    const user = await getSession()
+    const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: { courseId
 
 export async function DELETE(request: NextRequest, { params }: { params: { courseId: string } }) {
   try {
-    const user = await getSession()
+    const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
