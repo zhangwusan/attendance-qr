@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "Modern QR Code-based Attendance Management System for Institute of Technology of Cambodia by Department AMS",
   keywords: ["attendance", "qr code", "education", "management", "ITC", "AMS", "cambodia"],
   authors: [{ name: "Institute of Technology of Cambodia - AMS Department" }],
-  viewport: "width=device-width, initial-scale=1",
+  // viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
     generator: 'v0.dev'
 }

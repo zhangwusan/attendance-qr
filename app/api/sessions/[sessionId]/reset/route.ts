@@ -2,20 +2,25 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUserFromRequest } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
-export async function POST(request: NextRequest, { params }: { params: { sessionId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
     const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
-    const sessionId = Number.parseInt(params.sessionId)
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
+    const { sessionId } = await params
+    const sessionIdNum = Number.parseInt(sessionId)
     const { action } = await request.json()
 
     // Verify session belongs to teacher
     const session = await sql`
       SELECT id, qr_duration FROM sessions 
-      WHERE id = ${sessionId} AND teacher_id = ${user.id}
+      WHERE id = ${sessionIdNum} AND teacher_id = ${user.id}
     `
 
     if (session.length === 0) {
@@ -26,7 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: { session
       await sql`
         UPDATE sessions 
         SET manually_expired = true, is_active = false 
-        WHERE id = ${sessionId}
+        WHERE id = ${sessionIdNum}
       `
       return NextResponse.json({ success: true, message: "Session expired successfully" })
     } else if (action === "reactivate") {
@@ -35,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { session
       await sql`
         UPDATE sessions 
         SET manually_expired = false, is_active = true, qr_expires_at = ${newExpiry.toISOString()}
-        WHERE id = ${sessionId}
+        WHERE id = ${sessionIdNum}
       `
 
       return NextResponse.json({

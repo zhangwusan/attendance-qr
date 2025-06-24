@@ -4,6 +4,10 @@ import { verifyPassword, createToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 500 })
+    }
+
     const { email, password, role } = await request.json()
 
     if (!email || !password || !role) {

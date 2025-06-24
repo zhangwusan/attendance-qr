@@ -3,6 +3,21 @@ import { sql } from "@/lib/db"
 
 export async function GET() {
   try {
+    // Check if database is available
+    if (!sql) {
+      return NextResponse.json(
+        {
+          status: "unhealthy",
+          timestamp: new Date().toISOString(),
+          error: "Database connection not available",
+          database: {
+            connected: false,
+          },
+        },
+        { status: 503 },
+      )
+    }
+
     // Test database connection
     const result = await sql`SELECT 1 as test`
 

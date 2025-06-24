@@ -1,15 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { BulkImporter } from "@/lib/bulk-import"
-import { getUserById } from "@/lib/auth"
+import { getUserFromRequest } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.cookies.get("user_id")?.value
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await getUserById(Number.parseInt(userId))
+    const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 })
     }

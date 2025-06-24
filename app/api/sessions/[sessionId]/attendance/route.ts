@@ -2,19 +2,24 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUserFromRequest } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
-export async function GET(request: NextRequest, { params }: { params: { sessionId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
     const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
-    const sessionId = Number.parseInt(params.sessionId)
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
+    const { sessionId } = await params
+    const sessionIdNum = Number.parseInt(sessionId)
 
     // Verify session belongs to teacher
     const session = await sql`
       SELECT id FROM sessions 
-      WHERE id = ${sessionId} AND teacher_id = ${user.id}
+      WHERE id = ${sessionIdNum} AND teacher_id = ${user.id}
     `
 
     if (session.length === 0) {
@@ -26,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: { sessionI
              u.name, u.student_id, u.email
       FROM attendance a
       JOIN users u ON a.student_id = u.id
-      WHERE a.session_id = ${sessionId}
+      WHERE a.session_id = ${sessionIdNum}
       ORDER BY a.scanned_at DESC
     `
 

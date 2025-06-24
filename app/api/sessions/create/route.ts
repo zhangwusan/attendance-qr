@@ -10,6 +10,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
     const { courseId, qrDuration } = await request.json()
 
     if (!courseId) {

@@ -1,27 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/lib/db"
-import { getUserById } from "@/lib/auth"
+import { getUserFromRequest } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.cookies.get("user_id")?.value
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const user = await getUserFromRequest(request)
+    if (!user || user.role !== "teacher") {
+      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 })
     }
 
     // Check if we're in build mode (no database available)
-    if (!process.env.DATABASE_URL) {
+    if (!sql) {
       return NextResponse.json({
         users: { total_users: 0, total_teachers: 0, total_students: 0, new_users_week: 0 },
         courses: { total_courses: 0 },
         sessions: { total_sessions: 0, sessions_today: 0, active_sessions: 0 },
         attendance: { total_attendance: 0, attendance_today: 0 },
       })
-    }
-
-    const user = await getUserById(Number.parseInt(userId))
-    if (!user || user.role !== "teacher") {
-      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 })
     }
 
     // Get user statistics

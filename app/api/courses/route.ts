@@ -5,16 +5,32 @@ import { sql } from "@/lib/db"
 export async function GET(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request)
-    if (!user || user.role !== "teacher") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const courses = await sql`
-      SELECT id, name, code, room, time_slot, days_of_week, default_qr_duration, created_at
-      FROM courses 
-      WHERE teacher_id = ${user.id}
-      ORDER BY created_at DESC
-    `
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
+    let courses
+    if (user.role === "teacher") {
+      // Teachers see only their courses
+      courses = await sql`
+        SELECT id, name, code, room, time_slot, days_of_week, default_qr_duration, created_at
+        FROM courses 
+        WHERE teacher_id = ${user.id}
+        ORDER BY created_at DESC
+      `
+    } else {
+      // Students see all courses (for enrollment purposes)
+      courses = await sql`
+        SELECT c.id, c.name, c.code, c.room, c.time_slot, c.days_of_week, u.name as teacher_name
+        FROM courses c
+        JOIN users u ON c.teacher_id = u.id
+        ORDER BY c.created_at DESC
+      `
+    }
 
     return NextResponse.json({ courses })
   } catch (error) {
@@ -28,6 +44,10 @@ export async function POST(request: NextRequest) {
     const user = await getUserFromRequest(request)
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    }
+
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
     }
 
     const { name, code, room, timeSlot, daysOfWeek, defaultQrDuration } = await request.json()

@@ -136,13 +136,13 @@ export default function LoginPage() {
           <div className="mt-6 space-y-3">
             <Alert>
               <AlertDescription>
-                <strong>Demo Accounts:</strong>
+                {/* <strong>Demo Accounts:</strong>
                 <br />
                 <strong>Admin:</strong> admin@ams.edu / admin123
                 <br />
                 <strong>Teacher:</strong> teacher@ams.edu / teacher123
                 <br />
-                <strong>Student:</strong> student@ams.edu / student123
+                <strong>Student:</strong> student@ams.edu / student123 */}
               </AlertDescription>
             </Alert>
           </div>

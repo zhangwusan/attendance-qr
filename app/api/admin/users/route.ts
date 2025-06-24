@@ -10,10 +10,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
     }
 
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
     const users = await sql`
       SELECT 
         id, email, name, role, student_id, employee_id, 
-        department, program, year_level, phone, created_at, last_login
+        department, program, year_level, phone, created_at
       FROM users 
       ORDER BY created_at DESC
     `
@@ -31,6 +35,10 @@ export async function POST(request: NextRequest) {
 
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
+    }
+
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
     }
 
     const data = await request.json()

@@ -1,39 +1,36 @@
 import { NextResponse } from "next/server"
+import { sql } from "@/lib/db"
 
 export async function GET() {
   try {
-    // Dynamic import to handle potential module resolution issues
-    const { sql } = await import("@/lib/db")
+    let dbStatus = "disconnected"
+    let dbError = null
 
-    if (!sql) {
-      return NextResponse.json({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        database: "not_configured",
-        version: "1.0.0",
-        message: "Database not configured - running in development mode",
-      })
+    if (sql) {
+      try {
+        await sql`SELECT 1`
+        dbStatus = "connected"
+      } catch (error) {
+        dbStatus = "error"
+        dbError = error instanceof Error ? error.message : "Unknown database error"
+      }
     }
 
-    // Test database connection
-    await sql`SELECT 1`
-
     return NextResponse.json({
-      status: "healthy",
+      status: "ok",
       timestamp: new Date().toISOString(),
-      database: "connected",
-      version: "1.0.0",
+      database: {
+        status: dbStatus,
+        error: dbError,
+      },
+      environment: process.env.NODE_ENV,
     })
   } catch (error) {
-    console.error("Health check error:", error)
-
     return NextResponse.json(
       {
-        status: "unhealthy",
+        status: "error",
         timestamp: new Date().toISOString(),
-        database: "disconnected",
         error: error instanceof Error ? error.message : "Unknown error",
-        version: "1.0.0",
       },
       { status: 500 },
     )

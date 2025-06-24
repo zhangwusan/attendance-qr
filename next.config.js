@@ -1,16 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove output: "standalone" for development
-  // output: "standalone", // Only needed for production
-
-  // Disable telemetry in production
-  telemetry: false,
-
-  // Remove deprecated experimental options
-  experimental: {
-    // Remove serverComponentsExternalPackages - no longer needed in Next.js 15
-  },
-
   // Environment-specific configurations
   env: {
     RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT_NAME || "development",
@@ -25,6 +14,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+
+  // Updated for Next.js 15 - moved from experimental
+  serverExternalPackages: ["bcryptjs"],
 
   // Security headers for production
   async headers() {
@@ -68,6 +60,20 @@ const nextConfig = {
       ]
     }
     return []
+  },
+
+  // Webpack configuration to handle Node.js modules
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
   },
 }
 

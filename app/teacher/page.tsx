@@ -34,12 +34,17 @@ interface Session {
   qr_code: string
   expires_at: string
   created_at: string
+  qr_image?: string
+  room?: string
+  time_slot?: string
+  qr_duration?: number
 }
 
 export default function TeacherDashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
   const [activeSessions, setActiveSessions] = useState<Session[]>([])
+  const [currentSession, setCurrentSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -87,6 +92,12 @@ export default function TeacherDashboard() {
       if (response.ok) {
         const data = await response.json()
         setActiveSessions(data.sessions)
+        // Set the first active session as current session for QR display
+        if (data.sessions.length > 0) {
+          setCurrentSession(data.sessions[0])
+        } else {
+          setCurrentSession(null)
+        }
       }
     } catch (error) {
       toast.error("Failed to load active sessions")
@@ -100,6 +111,11 @@ export default function TeacherDashboard() {
     } catch (error) {
       toast.error("Failed to logout")
     }
+  }
+
+  const handleSessionUpdate = (session: Session | null) => {
+    setCurrentSession(session)
+    loadActiveSessions() // Refresh the sessions list
   }
 
   if (loading) {
@@ -190,18 +206,25 @@ export default function TeacherDashboard() {
                 <CardDescription>Create and manage your courses</CardDescription>
               </CardHeader>
               <CardContent>
-                <CourseManager courses={courses} onCoursesChange={loadCourses} />
+                <CourseManager courses={courses} onCoursesUpdate={setCourses} />
               </CardContent>
             </Card>
 
             {/* QR Code Generation */}
             <Card>
               <CardHeader>
-                <CardTitle>QR Code Generation</CardTitle>
-                <CardDescription>Generate QR codes for attendance</CardDescription>
+                <CardTitle>QR Code Session</CardTitle>
+                <CardDescription>Active QR code for attendance</CardDescription>
               </CardHeader>
               <CardContent>
-                <QRCodeDisplay courses={courses} onSessionCreated={loadActiveSessions} />
+                {currentSession ? (
+                  <QRCodeDisplay session={currentSession} onSessionUpdate={handleSessionUpdate} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No active QR session</p>
+                    <p className="text-sm text-gray-400">Create a new session to generate QR codes</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -220,14 +243,22 @@ export default function TeacherDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {activeSessions.map((session) => (
-                      <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={session.id}
+                        className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                          currentSession?.id === session.id ? "bg-blue-50 border-blue-200" : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => setCurrentSession(session)}
+                      >
                         <div>
                           <p className="font-medium">{session.course_name}</p>
                           <p className="text-sm text-gray-500">
                             Expires: {new Date(session.expires_at).toLocaleTimeString()}
                           </p>
                         </div>
-                        <Badge variant="secondary">Active</Badge>
+                        <Badge variant={currentSession?.id === session.id ? "default" : "secondary"}>
+                          {currentSession?.id === session.id ? "Selected" : "Active"}
+                        </Badge>
                       </div>
                     ))}
                   </div>

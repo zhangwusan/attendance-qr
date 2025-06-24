@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
+    if (!sql) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
     const { qrCode, latitude, longitude, accuracy } = await request.json()
 
     if (!qrCode) {
@@ -42,6 +46,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "You have already been marked present for this session" }, { status: 400 })
     }
 
+    // Get IP address from headers
+    const forwarded = request.headers.get("x-forwarded-for")
+    const realIp = request.headers.get("x-real-ip")
+    const ipAddress = forwarded?.split(",")[0] || realIp || "unknown"
+
     // Record attendance
     const result = await sql`
       INSERT INTO attendance (
@@ -50,7 +59,7 @@ export async function POST(request: NextRequest) {
       )
       VALUES (
         ${session.id}, ${user.id}, CURRENT_TIMESTAMP, ${latitude || null}, ${longitude || null}, ${accuracy || null},
-        ${request.ip || "unknown"}, ${request.headers.get("user-agent") || "unknown"}
+        ${ipAddress}, ${request.headers.get("user-agent") || "unknown"}
       )
       RETURNING id, scanned_at
     `
