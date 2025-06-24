@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm run dev"
+buildCommand = "npm run build"
 
 [deploy]
 numReplicas = 1

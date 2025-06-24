@@ -1,14 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Railway production optimizations
-  output: "standalone",
+  // Remove output: "standalone" for development
+  // output: "standalone", // Only needed for production
 
   // Disable telemetry in production
   telemetry: false,
 
-  // Optimize for Railway deployment
+  // Remove deprecated experimental options
   experimental: {
-    serverComponentsExternalPackages: ["@neondatabase/serverless"],
+    // Remove serverComponentsExternalPackages - no longer needed in Next.js 15
   },
 
   // Environment-specific configurations
@@ -20,7 +20,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: false, // Enable TypeScript checking
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: true,
@@ -49,7 +49,7 @@ const nextConfig = {
     ]
   },
 
-  // Redirect HTTP to HTTPS in production
+  // Only redirect in production
   async redirects() {
     if (process.env.NODE_ENV === "production") {
       return [
