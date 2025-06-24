@@ -7,45 +7,37 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json ./
-# Use npm install instead of npm ci since we don't have package-lock.json
-RUN npm install --frozen-lockfile || npm install
+# Install all dependencies including devDependencies for development
+RUN npm install
 
-# Rebuild the source code only when needed
-FROM base AS builder
+# Development image
+FROM base AS development
 WORKDIR /app
+
+# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
-# Disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN npm run build
-
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
+# Create nextjs user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+# Change ownership of the app directory
+RUN chown -R nextjs:nodejs /app
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
+# Switch to nextjs user
 USER nextjs
 
+# Expose the development port
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Start the development server with hot reloading
+CMD ["npm", "run", "dev"]

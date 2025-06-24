@@ -2,15 +2,23 @@ version: '3'
 
 services:
   web:
-    build: .
+    build: 
+      context: .
+      target: development
     ports:
-      - "5000:5000"
+      - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db/attendance
       - SECRET_KEY=your_secret_key_here
+      - NODE_ENV=development
     depends_on:
       - db
-    restart: always
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
 
   db:
     image: postgres:15
@@ -22,6 +30,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: unless-stopped
 
 volumes:
   postgres_data:
