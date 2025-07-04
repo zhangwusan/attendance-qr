@@ -230,6 +230,7 @@ export function CourseManager({ courses, onCoursesUpdate }: CourseManagerProps) 
                     <Label>Days of Week</Label>
                     <div className="grid grid-cols-4 gap-2 mt-2">
                       {DAYS_OF_WEEK.map((day) => (
+<<<<<<< HEAD
                         <div key={day} className="flex items-center space-x-2">
                           <Checkbox
                             id={day}
@@ -238,6 +239,16 @@ export function CourseManager({ courses, onCoursesUpdate }: CourseManagerProps) 
                           />
                           <Label htmlFor={day} className="text-sm">
                             {day.substring(0, 3)}
+=======
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={day.value}
+                            checked={formData.daysOfWeek.includes(day.value)}
+                            onCheckedChange={() => handleDayToggle(day.value)}
+                          />
+                          <Label htmlFor={day.value} className="text-sm">
+                            {day.label.substring(0, 3)}
+>>>>>>> e27b8ad (fixed code)
                           </Label>
                         </div>
                       ))}

@@ -2,11 +2,14 @@
 
 # dependencies
 /node_modules
+<<<<<<< HEAD
 /.pnp
 .pnp.js
 
 # testing
 /coverage
+=======
+>>>>>>> e27b8ad (fixed code)
 
 # next.js
 /.next/
@@ -15,24 +18,35 @@
 # production
 /build
 
+<<<<<<< HEAD
 # misc
 .DS_Store
 *.pem
 
+=======
+>>>>>>> e27b8ad (fixed code)
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+<<<<<<< HEAD
 
 # local env files
 .env*.local
 .env
+=======
+.pnpm-debug.log*
+
+# env files
+.env*
+>>>>>>> e27b8ad (fixed code)
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
+<<<<<<< HEAD
 next-env.d.ts
 
 # python
@@ -142,3 +156,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+=======
+next-env.d.ts
+>>>>>>> e27b8ad (fixed code)

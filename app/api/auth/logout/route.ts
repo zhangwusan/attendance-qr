@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+<<<<<<< HEAD
 
 export async function POST() {
   try {
@@ -13,6 +14,17 @@ export async function POST() {
     })
 
     return response
+=======
+import { clearAuthCookie } from "@/lib/auth"
+
+export async function POST() {
+  try {
+    clearAuthCookie()
+
+    return NextResponse.json({
+      message: "Logout successful",
+    })
+>>>>>>> e27b8ad (fixed code)
   } catch (error) {
     console.error("Logout error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

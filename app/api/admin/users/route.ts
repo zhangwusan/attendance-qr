@@ -1,11 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
+<<<<<<< HEAD
 import { getUserFromRequest, hashPassword } from "@/lib/auth"
 import { sql } from "@/lib/db"
+=======
+import { sql } from "@/lib/db"
+import { getUserFromRequest, hashPassword, isAdmin } from "@/lib/auth"
+>>>>>>> e27b8ad (fixed code)
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request)
 
+<<<<<<< HEAD
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
     }
@@ -18,6 +24,14 @@ export async function GET(request: NextRequest) {
       SELECT 
         id, email, name, role, student_id, employee_id, 
         department, program, year_level, phone, created_at
+=======
+    if (!user || !isAdmin(user)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    }
+
+    const users = await sql`
+      SELECT id, email, name, role, student_id, employee_id, department, program, year_level, is_admin, created_at
+>>>>>>> e27b8ad (fixed code)
       FROM users 
       ORDER BY created_at DESC
     `
@@ -33,6 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request)
 
+<<<<<<< HEAD
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 })
     }
@@ -112,5 +127,44 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create user error:", error)
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
+=======
+    if (!user || !isAdmin(user)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    }
+
+    const { email, password, name, role, student_id, employee_id, department, program, year_level } =
+      await request.json()
+
+    if (!email || !password || !name || !role) {
+      return NextResponse.json({ error: "Email, password, name, and role are required" }, { status: 400 })
+    }
+
+    // Check if user already exists
+    const existingUsers = await sql`
+      SELECT id FROM users WHERE email = ${email.toLowerCase()}
+    `
+
+    if (existingUsers.length > 0) {
+      return NextResponse.json({ error: "User with this email already exists" }, { status: 400 })
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password)
+
+    // Create user
+    const newUsers = await sql`
+      INSERT INTO users (email, password, name, role, student_id, employee_id, department, program, year_level)
+      VALUES (${email.toLowerCase()}, ${hashedPassword}, ${name}, ${role}, ${student_id || null}, ${employee_id || null}, ${department || null}, ${program || null}, ${year_level || null})
+      RETURNING id, email, name, role, student_id, employee_id, department, program, year_level, is_admin, created_at
+    `
+
+    return NextResponse.json({
+      user: newUsers[0],
+      message: "User created successfully",
+    })
+  } catch (error) {
+    console.error("Create user error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+>>>>>>> e27b8ad (fixed code)
   }
 }

@@ -77,4 +77,8 @@ const nextConfig = {
   },
 }
 
+<<<<<<< HEAD
 module.exports = nextConfig
+=======
+module.exports = nextConfig
+>>>>>>> e27b8ad (fixed code)
